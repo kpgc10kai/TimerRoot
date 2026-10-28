@@ -1,0 +1,16 @@
+# build output
+build/
+.gradle/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# the exploit binary is fetched, not committed
+app/src/main/assets/timer
+
+# ide
+.idea/
+*.iml
+.DS_Store
