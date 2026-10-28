@@ -77,16 +77,82 @@ scripts/build.ps1 -Sdk "C:\Users\<you>\AppData\Local\Android\Sdk"
 
 ## Usage
 
-1. Start Shizuku (wireless debugging in the Shizuku app).
-2. Open TimerRoot. It binds automatically once the permission is granted; if
-   not, press `Shizuku` and allow the request.
-3. `Prepare` extracts the exploit to `/data/local/tmp/timer`.
-4. `Get root shell`:
-   - escalates and keeps a `uid=0` shell inside the service
-   - then automatically starts the KernelSU late-load
-   - the card turns green: **Root shell**, then **Jailbreak mode**
-5. `Reboot` (top right) reboots through the service, so it also works when no
-   root shell is open yet.
+### 1. Start Shizuku
+
+Shizuku has to be running before TimerRoot can do anything: it is the process
+that provides the shell user the exploit needs. Shizuku stops on every reboot,
+so this is the first step each time.
+
+**Wireless debugging (no PC after the first pairing)**
+
+1. Enable developer options: Settings -> About device -> tap *Build number* 7x.
+2. Settings -> System -> Developer options -> **Wireless debugging** -> on.
+3. Open the Shizuku app -> **Start** -> *Start via wireless debugging*.
+4. Allow the notification, then in *Pair device with pairing code* enter the
+   6-digit code shown on the phone.
+5. Shizuku reports "Shizuku is running" (the notification says the server is up).
+
+**Over USB**
+
+With the phone connected and USB debugging authorised:
+
+```bash
+adb shell sh /sdcard/Android/data/moe.shizuku.privileged.api/start.sh
+```
+
+Newer Shizuku releases may not ship that script any more; if it is missing, use
+the wireless debugging route above.
+
+Check that the server is up:
+
+```bash
+adb shell ps -A | grep shizuku_server
+# shell  12345  1  ...  shizuku_server
+```
+
+`ps` showing only `moe.shizuku.privileged.api` means the manager app is open but
+the server is **not** running; the exploit cannot start until it is.
+
+### 2. First launch
+
+1. Open TimerRoot.
+2. When Shizuku asks *Allow TimerRoot to access Shizuku?*, choose
+   **Allow all the time**.
+3. The card turns **Ready** (Shizuku connected, no root yet). If it still says
+   `Not connected`, press `Shizuku` in the tools row to request again.
+
+### 3. Prepare
+
+`Prepare` extracts `assets/timer` to `/data/local/tmp/timer`:
+
+```
+installed 307192 bytes
+```
+
+### 4. Get root shell
+
+One tap. The app escalates, keeps a `uid=0` shell inside the service, and then
+starts the KernelSU late-load automatically:
+
+```
+[child] woke uid=0
+root shell ready - loading KernelSU...
+Loading KernelSU... 12s
+KSU_LOADED
+```
+
+The card goes **Root shell** -> **Jailbreak mode** (`u:r:ksu:s0`). If the
+KernelSU stage loses its race, the card turns red with `KernelSU failed`, and
+you should reboot before retrying.
+
+### 5. Reboot
+
+Use the `Reboot` pill. It goes through the service (`svc power reboot`), so it
+works even when no root shell is open yet. Rebooting is also the only clean way
+to remove parked processes and to unload KernelSU.
+
+After rebooting, start again from step 1: Shizuku is stopped and KernelSU is
+gone.
 
 The status card reflects what is actually live, detected by running
 `su -c id` and checking for `u:r:ksu:s0`:
@@ -97,6 +163,7 @@ The status card reflects what is actually live, detected by running
 | Ready | Shizuku connected, no root yet |
 | Root shell | `uid=0`, `u:r:shell:s0` |
 | Jailbreak mode | KernelSU loaded, `su` works in `u:r:ksu:s0` |
+
 
 ## Safety
 
